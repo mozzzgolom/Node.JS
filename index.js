@@ -7,7 +7,7 @@ const rl = readline.createInterface({
 });
 
 rl.question('Введите первое число: ', (one) => {
-    rl.question('Введите второе число ', (two) => {
+    rl.question('Введите второе число: ', (two) => {
         console.log(isNaN(one), isNaN(two))
         console.log(typeof one, typeof two)
         if(isNaN(one) || isNaN(two)) {
