@@ -1,54 +1,48 @@
-const colors = require('colors')
-const readline = require('readline');
+const fs = require('fs')
+const path = require('path')
+const http = require('http')
 
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
+const server = http.createServer(((req, res) => {
+    const filePath = path.join(__dirname);
+    let currentPath = ''
+    if(req.url === '/') {
+         currentPath = filePath
+    } else {
+         currentPath = req.url.replace(/%20/, " ")
+    }
+    res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'})
+    //console.log(filePath)
+    const isFile = fileName => {
+        return fs.lstatSync(fileName).isFile();
+    }
+    if(req.method === 'GET' && req.url !== '/favicon.ico') {
+         console.log("req.url: ", req.url, path.basename(req.url), path.join(__dirname))
 
-rl.question('Введите первое число: ', (one) => {
-    rl.question('Введите второе число ', (two) => {
-        console.log(isNaN(one), isNaN(two))
-        console.log(typeof one, typeof two)
-        if(isNaN(one) || isNaN(two)) {
-            console.log(colors.red("Не диапазон чисел"))
+        if(isFile(currentPath)) {
+            console.log('yes this is file')
+            let readStream  = fs.createReadStream(currentPath, {
+                encoding: 'utf-8',
+            })
+            readStream.on('data', chunk => {
+                console.log(chunk)
+                data += chunk
+            })
+            let data = ''
+            readStream.on('end', () => {
+                res.write(`<ul><li><a href="${filePath}">Главная страница</a></li></ul><p>${data}</p>`)
+                res.end()
+            })
         } else {
-            if(+first > +two) {
-                console.log(colors.red("Первое число больше второго"))
-            } else {
-                console.log(colors.green(`Ваш диапазон чисел: ${one} - ${two}`));
-                let result = 0, colorId = 0, arr = []
-                for(let i = one; i <= two; i++) {
-                    for(let j = 2; j < i; j++) {
-                        result = i / j % 1
-                        if(result === 0) {
-                            break
-                        }
-                    }
-                    if(result !== 0 || i === 2) {
-                        ++colorId
-                        switch (colorId) {
-                            case 1:
-                                arr.push(colors.green(i))
-                                break
-                            case 2:
-                                arr.push(colors.yellow(i))
-                                break
-                            case 3:
-                                arr.push(colors.red(i))
-                                break
-                        }
-                        if(colorId === 3) colorId = 0
-                    }
-                }
-                if (arr.length < 1) {
-                    console.log(colors.red("В указанном диапазоне нет простых чисел"))
-                } else {
-                    console.log(...arr)
-                }
-
-            }
+            const list = fs.readdirSync(currentPath)
+            const result = list.map(item => {
+                let href = currentPath + "/" + item
+                item = `<li><a href="${href}">${item}</a></li>`
+                return item
+            })
+            res.write(`<ul><li><a href="${filePath}">Главная страница</a></li>${result.join('')}</ul>`, 'utf-8')
+            res.end()
         }
-        rl.close();
-    });
-});
+    }
+}))
+
+server.listen(8888)
