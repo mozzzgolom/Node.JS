@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="https://cdn.socket.io/3.1.1/socket.io.min.js"
+        integrity="sha384-gDaozqUvc4HTgo8iZjwth73C6dDDeOJsAgpxBcMpZYztUfjHXpzrpdrHRdVp8ySO" crossorigin="anonymous">
+    </script>
+</head>
+
+<body>
+    <style>
+        .chat__msg {
+            display: block;
+            width: 40%;
+            border: 1px solid;
+            padding: 8px;
+            border-radius: 8px;
+            background-color: #213040;
+            color: #D8DADC;
+        }
+
+        .chat__msg_user {
+            background-color: #3D6A97;
+            color: #D8DADC;
+            display: block;
+            width: 40%;
+            border: 1px solid;
+            padding: 8px;
+            border-radius: 8px;
+            margin: 0 0 0 auto;
+        }
+
+        .chat__msg_srv {
+            color: #D8DADC;
+            display: block;
+            width: 40%;
+            padding: 8px;
+            margin: 0 auto;
+        }
+    </style>
+    <div id="root" class="chat">
+        <p class="chat__users"></p>
+        <div class="chat__list"></div>
+        <div class="chat__panel">
+            <input type="text" class="chat__input">
+            <button class="chat__btn">send</button>
+        </div>
+    </div>
+    <script>
+        const sendBtn = document.querySelector('.chat__btn')
+        const inputMsg = document.querySelector('.chat__input')
+        const msgList = document.querySelector('.chat__list')
+        const users = document.querySelector('.chat__users')
+        const socket = io('localhost:7777')
+        let userId
+
+        socket.on('connect', () => {
+            console.log('connect')
+
+        })
+        sendBtn.onclick = () => {
+            const data = {
+                message: inputMsg.value
+            }
+            socket.emit('client-msg', data)
+        }
+        socket.on('server-msg', ({
+            message,
+            userID
+        }) => {
+            console.log(userID, userId)
+            msgList.insertAdjacentHTML('beforeend', `<div class=${ userID === userId ? 'chat__msg_user' : 'chat__msg'}>
+                    <p>Автор: ${userID}</p>
+                    <p >${message}</p>
+                </div>`)
+        })
+        socket.on('user-init', ({
+            usersID
+        }) => {
+            userId = usersID
+        })
+        socket.on('users-count', ({
+            usersCount,
+            usersID,
+            msg
+        }) => {
+
+            users.textContent = `Онлайн: ${usersCount}`
+            msgList.insertAdjacentHTML('beforeend', `<p class="chat__msg_srv">${usersID} ${msg}</p>`)
+        })
+    </script>
+</body>
+
+</html>

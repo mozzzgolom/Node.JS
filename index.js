@@ -1,54 +1,37 @@
-const colors = require('colors')
-const readline = require('readline');
+const http = require('http')
+const socket = require('socket.io')
+const path = require('path')
+const fs = require('fs')
 
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
+const server = http.createServer((req, res) => {
+    const pathHTML = path.join(__dirname, './index.html')
+    const readStream = fs.createReadStream(pathHTML, {
+        encoding: 'utf-8'
+    })
+    readStream.pipe(res)
+  //  res.end()
+})
 
-rl.question('Введите первое число: ', (one) => {
-    rl.question('Введите второе число ', (two) => {
-        console.log(isNaN(one), isNaN(two))
-        console.log(typeof one, typeof two)
-        if(isNaN(one) || isNaN(two)) {
-            console.log(colors.red("Не диапазон чисел"))
-        } else {
-            if(+first > +two) {
-                console.log(colors.red("Первое число больше второго"))
-            } else {
-                console.log(colors.green(`Ваш диапазон чисел: ${one} - ${two}`));
-                let result = 0, colorId = 0, arr = []
-                for(let i = one; i <= two; i++) {
-                    for(let j = 2; j < i; j++) {
-                        result = i / j % 1
-                        if(result === 0) {
-                            break
-                        }
-                    }
-                    if(result !== 0 || i === 2) {
-                        ++colorId
-                        switch (colorId) {
-                            case 1:
-                                arr.push(colors.green(i))
-                                break
-                            case 2:
-                                arr.push(colors.yellow(i))
-                                break
-                            case 3:
-                                arr.push(colors.red(i))
-                                break
-                        }
-                        if(colorId === 3) colorId = 0
-                    }
-                }
-                if (arr.length < 1) {
-                    console.log(colors.red("В указанном диапазоне нет простых чисел"))
-                } else {
-                    console.log(...arr)
-                }
+const io = socket(server)
+let usersCount = 0
+io.on('connection', client => {
+    usersCount++
+    client.emit('user-init', {'usersID': client.id})
+    client.emit('users-count', {'usersCount': usersCount, 'usersID': client.id, 'msg': 'вошел в чат'})
+    client.broadcast.emit('users-count', {'usersCount': usersCount, 'usersID': client.id, 'msg': 'вошел в чат'})
+    console.log("connection", client.id)
+    client.on('client-msg', ({message}) => {
+        client.emit('server-msg', {message, 'userID': client.id})
+        client.broadcast.emit('server-msg', {message, 'userID': client.id})
+    })
 
-            }
-        }
-        rl.close();
-    });
-});
+    client.on('disconnecting', () => {
+        console.log('disconnect')
+        usersCount--
+        client.emit('users-count', {'usersCount': usersCount, 'usersID': client.id, 'msg': 'покинул чат'})
+        client.broadcast.emit('users-count', {'usersCount': usersCount, 'usersID': client.id, 'msg': 'покинул чат'})
+    })
+})
+
+
+server.listen(7777)
