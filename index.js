@@ -47,7 +47,7 @@ const readingFile = (filePath) => {
                 })
 
             rl.close();
-        });
+         });
 
     } else {
         console.log('no')
