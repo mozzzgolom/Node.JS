@@ -22,3 +22,4 @@ rl.question('Введите дату в формате "минуты-час-де
     emitterObject.emit('timer', date);
     rl.close();
 })
+ 
