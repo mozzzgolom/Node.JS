@@ -1,54 +1,68 @@
-const colors = require('colors')
-const readline = require('readline');
+const fs = require('fs')
+const lazy = require('lazy')
+const path = require('path')
+const yargs = require('yargs')
+const readline = require("readline");
+const inquirer = require("inquirer");
 
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
+const options = yargs
+    .usage("Usage: -p <path>")
+    .option("p", { alias: "path", describe: "Path to file", type: "string", demandOption: true })
+    .argv;
 
-rl.question('Введите первое число: ', (one) => {
-    rl.question('Введите второе число ', (two) => {
-        console.log(isNaN(one), isNaN(two))
-        console.log(typeof one, typeof two)
-        if(isNaN(one) || isNaN(two)) {
-            console.log(colors.red("Не диапазон чисел"))
-        } else {
-            if(+first > +two) {
-                console.log(colors.red("Первое число больше второго"))
-            } else {
-                console.log(colors.green(`Ваш диапазон чисел: ${one} - ${two}`));
-                let result = 0, colorId = 0, arr = []
-                for(let i = one; i <= two; i++) {
-                    for(let j = 2; j < i; j++) {
-                        result = i / j % 1
-                        if(result === 0) {
-                            break
-                        }
+const filePath = path.join(__dirname, options.path);
+
+const isFile = fileName => {
+    return fs.lstatSync(fileName).isFile();
+}
+
+// const question = async (query) => rl.question(query, resolve => resolve) // new Promise(resolve => rl.question(query, resolve) )
+
+const readingFile = (filePath) => {
+    if(isFile(filePath)) {
+        const rl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout
+        });
+
+        rl.question("Введите шаблон поиска: ", (template) => {
+            console.log(template, options.path, filePath)
+            const readStream = fs.createReadStream(filePath, {
+                encoding: 'utf-8',
+            })
+
+            const writeStream = fs.createWriteStream(`${options.path}_${template}_requests.log`, {
+                encoding:'utf8',
+                flags: 'a'
+            });
+
+            new lazy(readStream)
+                .lines
+                .forEach(function(line) {
+                    let result = String(line).match(template)
+                    if(result !== null) {
+                        writeStream.write(line)
+                        writeStream.write('\n')
                     }
-                    if(result !== 0 || i === 2) {
-                        ++colorId
-                        switch (colorId) {
-                            case 1:
-                                arr.push(colors.green(i))
-                                break
-                            case 2:
-                                arr.push(colors.yellow(i))
-                                break
-                            case 3:
-                                arr.push(colors.red(i))
-                                break
-                        }
-                        if(colorId === 3) colorId = 0
-                    }
-                }
-                if (arr.length < 1) {
-                    console.log(colors.red("В указанном диапазоне нет простых чисел"))
-                } else {
-                    console.log(...arr)
-                }
+                })
 
-            }
-        }
-        rl.close();
-    });
-});
+            rl.close();
+         });
+
+    } else {
+        console.log('no')
+        const list = fs.readdirSync(filePath)
+        inquirer
+            .prompt([{
+                name: "fileName",
+                type: "list",
+                message: "Choose file:",
+                choices: list,
+            }])
+            .then((answer) => {
+                console.log(answer.fileName);
+                readingFile(filePath + '/' + answer.fileName)
+            });
+    }
+}
+readingFile(filePath)
