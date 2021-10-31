@@ -1,54 +1,30 @@
-const colors = require('colors')
-const readline = require('readline');
+const fs = require('fs')
+const lazy = require('lazy')
 
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
+const readStream = fs.createReadStream('./access.log', {
+    encoding: 'utf-8',
+})
+
+const writeStream = fs.createWriteStream(`./89.123.1.41_requests.log`, {
+    encoding:'utf8',
+    flags: 'a'
+});
+const writeStream2 = fs.createWriteStream(`./34.48.240.111_requests.log`, {
+    encoding:'utf8',
+    flags: 'a'
 });
 
-rl.question('Введите первое число: ', (one) => {
-    rl.question('Введите второе число ', (two) => {
-        console.log(isNaN(one), isNaN(two))
-        console.log(typeof one, typeof two)
-        if(isNaN(one) || isNaN(two)) {
-            console.log(colors.red("Не диапазон чисел"))
-        } else {
-            if(+first > +two) {
-                console.log(colors.red("Первое число больше второго"))
-            } else {
-                console.log(colors.green(`Ваш диапазон чисел: ${one} - ${two}`));
-                let result = 0, colorId = 0, arr = []
-                for(let i = one; i <= two; i++) {
-                    for(let j = 2; j < i; j++) {
-                        result = i / j % 1
-                        if(result === 0) {
-                            break
-                        }
-                    }
-                    if(result !== 0 || i === 2) {
-                        ++colorId
-                        switch (colorId) {
-                            case 1:
-                                arr.push(colors.green(i))
-                                break
-                            case 2:
-                                arr.push(colors.yellow(i))
-                                break
-                            case 3:
-                                arr.push(colors.red(i))
-                                break
-                        }
-                        if(colorId === 3) colorId = 0
-                    }
-                }
-                if (arr.length < 1) {
-                    console.log(colors.red("В указанном диапазоне нет простых чисел"))
-                } else {
-                    console.log(...arr)
-                }
-
-            }
+new lazy(readStream)
+    .lines
+    .forEach(function(line) {
+        let result = String(line).match(/89.123.1.41/)
+        let result2 = String(line).match(/34.48.240.111/)
+        if(result !== null) {
+            writeStream.write(line)
+            writeStream.write('\n')
         }
-        rl.close();
-    });
-});
+        if(result2 !== null) {
+            writeStream2.write(line)
+            writeStream2.write('\n')
+        }
+    })
